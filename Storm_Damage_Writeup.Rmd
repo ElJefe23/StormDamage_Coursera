@@ -1,0 +1,95 @@
+---
+title: "Assessment of Danger from Weather Events Across the United States"
+author: "Jeff Wolbach"
+date: "Wednesday, September 17, 2014"
+output: html_document
+---
+
+##Synopsis
+
+Data from weather events across the United States were analyzed to determine which event types were most dangerous to human health, and most economically damaging.  It was determined that Tornadoes/High Winds and Floods were the weather events posing the greatest danger to human health.  The weather events causing the greatest economic damage across the United states were Tornadoes/High Winds, Floods, and Hailstorms.
+
+
+## Data Processing
+The dataset used to answer these questions is Storm Data supplied by the National Weather Service.  It is provided in a .csv.bz2 format and may be loaded into R via
+
+```{r, cache=TRUE}
+setwd("~/GitHub/StormDamage_Coursera")
+stormData<-read.table("repdata_data_StormData.csv.bz2", header=TRUE, sep=",")
+```
+
+We only require a subset of this data to answer the questions.  Consultation with the National Weather Service Storm Data Documentation and visual inspection of the dataset allows determination of the relevant column names/variables. The relevant columns are summed on the basis of the event type (EVTYPE) to determine the total impact of each event type.  This requires the plyr package so we can use the ddply function.  
+
+```{r,cache=TRUE}
+require(plyr)
+byEvent<-ddply(stormData,.(EVTYPE), summarize, totFatal=sum(FATALITIES), totInj=sum(INJURIES), totProp=sum(PROPDMG), totCrop=sum(CROPDMG))
+rm(stormData)
+```
+
+The original, large dataset is removed to free up system resources.  All subsequent analysis will be basesd on the byEvent dataset.
+
+## Results
+
+### Danger to Human Health
+To determine the type of events that are most dangerous to human health across the United States, we first examine the number of fatalities per event type.  The relevant columns are extracted from the byEvent dataset and put in order of decreasing number of total fatalities.  The five event types with the greatest number of total fatalities are extracted for graphical analysis.
+
+```{r}
+byFatal<-byEvent[order(byEvent$totFatal, decreasing=TRUE),c("EVTYPE","totFatal")]
+byFatal5<-byFatal[c(1:5),]
+```
+
+We can also examine the number of total injuries per event type.  Again, the relevant columns are extracted from the byEvent dataset and put in order of decreasing number of total injuries.  The five event types with the greatest number of total injuries are extracted for graphical analysis.
+
+```{r}
+byInjury<-byEvent[order(byEvent$totInj,decreasing=TRUE),c("EVTYPE","totInj")]
+byInjury5<-byInjury[c(1:5),]
+```
+
+The results are presented in Figure 1.
+
+```{r}
+par(mfrow=c(2,1), mar=c(5,11,4,2))
+barplot(byFatal5$totFatal,names.arg=byFatal5$EVTYPE,horiz=TRUE,las=1,col=c(1:5),main="Fatalities by Event Type", xlab="Fatalities")
+barplot(byInjury5$totInj,names.arg=byInjury5$EVTYPE,horiz=TRUE,las=1,col=c(6:10),main="Injuries by Event Type", xlab="Injuries")
+```
+
+####Figure 1 - Weather Events Causing Greatest Impact on Human Health
+
+Tornadoes are clearly the weather events with the greatest impact on human health, with floods, heat, and lightning also having significant impact.  
+
+### Economic Danger
+We can similarly investigate which event types cause the greatest economic damage.  The dataset gives information on property damage and crop damage separately; we again extract the top five in each category to present graphically.
+
+```{r}
+byProp<-byEvent[order(byEvent$totProp,decreasing=TRUE),c("EVTYPE","totProp")]
+byProp5<-byProp[c(1:5),]
+byCrop<-byEvent[order(byEvent$totCrop,decreasing=TRUE),c("EVTYPE","totCrop")]
+byCrop5<-byCrop[c(1:5),]
+```
+
+Figure 2 plots the top five event types for property and crop damage 
+
+```{r}
+par(mfrow=c(2,1), mar=c(5,11,4,2))
+barplot(byProp5$totProp,names.arg=byProp5$EVTYPE,horiz=TRUE,las=1,col=c(3:7),main="Property Damage by Event Type", xlab="Property Damage - 1000's $", xlim=c(0,3000000))
+
+barplot(byCrop5$totCrop,names.arg=byCrop5$EVTYPE,horiz=TRUE,las=1,col=c(8:12),main="Crop Damage by Event Type", xlab="Crop Damage - 1000's $", xlim=c(0,3000000))
+```
+
+####Figure 2 - Weather Events Causing Greatest Economic Damage
+
+Tornadoes (or high winds) and floods show significant economic damage in addition to their previously noted danger to human health, and Hail is noted as a primary economic threat.
+
+We can also extract and plot the top ten event types for total damage (crop + property).  
+
+```{r}
+byEvent$totDamage<-byEvent$totCrop + byEvent$totProp
+byDamage<-byEvent[order(byEvent$totDamage,decreasing=TRUE),c("EVTYPE","totDamage")]
+byDamage10<-byDamage[c(1:10),]
+par(mar=c(5,11,4,2))
+barplot(byDamage10$totDamage,names.arg=byDamage10$EVTYPE,horiz=TRUE,las=1,col=c(12:21),main="Total Damage by Event Type", xlab="Total Damage - 1000's $",xlim=c(0,3000000) )
+```
+
+####Figure 3 - Total Economic Damage by Weather Events
+
+We again see that Tornadoes and Floods are the most severely damaging weather events across the United States.
